@@ -9,5 +9,5 @@ edition = "2021"
 clap = "4.4.7"
 indicatif = "0.17.7"
 itertools = "0.11.0"
-phylo = { version = "0.1.0", path = "../../phylo-rs" }
+phylo = { version = "0.1.0", git = "https://github.com/sriram98v/phylo-rs" }
 rayon = "1.8.0"
