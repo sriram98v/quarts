@@ -49,7 +49,25 @@ fn write_tree_quarts(fname: &String){
 			.combinations(4)
 			.par_bridge()
 			.map(|x| {
-				format!("{}\n",tree.induce_tree(x).to_newick())
+				let mut quart = tree.induce_tree(x);
+				match quart.is_binary(){
+					false => {
+						let leaves = quart.get_leaves(quart.get_root()).iter().map(|x| quart.get_taxa(&x.0)).collect_vec();
+						format!("{},{},{},{}", leaves[0], leaves[1], leaves[2], leaves[3])		
+					},
+					true => {
+						quart.balance_subtree();
+						let mut newick_str_arr = quart.get_node_children(quart.get_root()).iter()
+							.map(|x| {
+								let mut cher = quart.get_node_children(&x.0).iter().map(|x| quart.get_node(&x.0).taxa()).collect_vec();
+								cher.sort();
+								cher
+							})
+							.collect_vec();
+						newick_str_arr.sort();
+						format!("{},{}|{},{}", newick_str_arr[0][0], newick_str_arr[0][1], newick_str_arr[1][0], newick_str_arr[1][1])		
+					}
+				}
 			})
 			.for_each(|x| {
 				file.lock().unwrap().write_fmt(format_args!("{}\n", x)).expect("Failed!");
@@ -67,13 +85,13 @@ fn main() {
 		.arg(arg!(<SRC_FILE> "Source file with input tree (Will automatically use last tree of file is more than one is present)")
 			.required(true)
 			)
-		.arg(arg!(-n --num <NUM_T> "Number of threads")
+		.arg(arg!(-t --threads <NUM_T> "Number of threads")
 			.required(true)
 			.value_parser(clap::value_parser!(usize))
 			)
         .get_matches();
 	let tree_file = matches.get_one::<String>("SRC_FILE").expect("Please provide tree file!");
-	let num_threads = matches.get_one::<usize>("num");
+	let num_threads = matches.get_one::<usize>("threads");
 	match num_threads{
 		Some(n) => {rayon::ThreadPoolBuilder::new().num_threads(*n).build_global().unwrap()}
 		None => {rayon::ThreadPoolBuilder::new().num_threads(available_parallelism().unwrap().get()).build_global().unwrap()}
